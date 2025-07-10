@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import edu.progavud.distrimusic.playlist.PlaylistEntity;
+import org.hibernate.annotations.CreationTimestamp;
+import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -34,6 +36,10 @@ public class MusicEntity {
     
     @Column(nullable = false)
     private Integer likes = 0;
+    
+    @CreationTimestamp
+    @Column(name = "fecha_publicacion", nullable = false, updatable = false)
+    private LocalDateTime fechaPublicacion;
     
     // Relación muchos a muchos con playlists (una canción puede estar en muchas playlists)
     @ManyToMany(mappedBy = "canciones", fetch = FetchType.LAZY)

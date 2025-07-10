@@ -6,10 +6,7 @@ import edu.progavud.distrimusic.email.EmailService;
 import java.util.List;
 
 /**
- * Servicio para gestión de usuarios con email de registro
- * Compatible con UserRepository simplificado
- * @author Tu nombre
- * @version 1.0
+ * Servicio para gestión de usuarios con email de registro y seguimiento
  */
 @Service
 @RequiredArgsConstructor
@@ -27,8 +24,6 @@ public class UserService {
             throw new RuntimeException("El usuario ya existe");
         }
         
-
-        
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new RuntimeException("El email ya está registrado");
         }
@@ -36,7 +31,7 @@ public class UserService {
         // Guardar usuario
         UserEntity savedUser = userRepository.save(user);
         
-        // ✅ ENVIAR EMAIL DE REGISTRO
+        // ENVIAR EMAIL DE REGISTRO
         try {
             emailService.enviarEmailRegistro(
                 savedUser.getUsuario(),
@@ -81,5 +76,66 @@ public class UserService {
         return userRepository.findAll();
     }
     
-
-}   
+    // ✅ Métodos para sistema de seguimiento (solo los que tienes en repository)
+    
+    /**
+     * Seguir a un usuario
+     */
+    public void seguirUsuario(String usuarioActual, String usuarioASeguir) {
+        if (usuarioActual.equals(usuarioASeguir)) {
+            throw new RuntimeException("No puedes seguirte a ti mismo");
+        }
+        
+        UserEntity follower = getUserByUsuario(usuarioActual);
+        UserEntity following = getUserByUsuario(usuarioASeguir);
+        
+        if (follower.estaSiguiendo(following)) {
+            throw new RuntimeException("Ya sigues a este usuario");
+        }
+        
+        follower.getSiguiendo().add(following);
+        following.getSeguidores().add(follower);
+        
+        userRepository.save(follower);
+        userRepository.save(following);
+    }
+    
+    /**
+     * Dejar de seguir a un usuario
+     */
+    public void dejarDeSeguir(String usuarioActual, String usuarioADejar) {
+        UserEntity follower = getUserByUsuario(usuarioActual);
+        UserEntity following = getUserByUsuario(usuarioADejar);
+        
+        if (!follower.estaSiguiendo(following)) {
+            throw new RuntimeException("No sigues a este usuario");
+        }
+        
+        follower.getSiguiendo().remove(following);
+        following.getSeguidores().remove(follower);
+        
+        userRepository.save(follower);
+        userRepository.save(following);
+    }
+    
+    /**
+     * Obtener seguidores de un usuario
+     */
+    public List<UserEntity> getSeguidores(String usuario) {
+        return userRepository.findSeguidoresByUsuario(usuario);
+    }
+    
+    /**
+     * Obtener usuarios que sigue un usuario
+     */
+    public List<UserEntity> getSiguiendo(String usuario) {
+        return userRepository.findSiguiendoByUsuario(usuario);
+    }
+    
+    /**
+     * Verificar si un usuario sigue a otro
+     */
+    public boolean esSeguidor(String follower, String following) {
+        return userRepository.isFollowing(follower, following);
+    }
+}

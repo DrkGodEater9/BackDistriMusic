@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import edu.progavud.distrimusic.persona.UserEntity;
 import edu.progavud.distrimusic.playlist.PlaylistEntity;
+import org.hibernate.annotations.CreationTimestamp;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "comments")
@@ -23,6 +25,11 @@ public class CommentEntity {
     @NotBlank(message = "El contenido del comentario es obligatorio")
     @Size(max = 500, message = "El comentario no puede exceder 500 caracteres")
     private String contenido;
+    
+    // ✅ AGREGAR: Fecha del comentario
+    @CreationTimestamp
+    @Column(name = "fecha_comentario", nullable = false, updatable = false)
+    private LocalDateTime fechaComentario;
     
     // Relación muchos a uno con usuario (muchos comentarios pueden pertenecer a un usuario)
     @ManyToOne(fetch = FetchType.LAZY)

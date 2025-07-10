@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import edu.progavud.distrimusic.persona.UserEntity;
 import edu.progavud.distrimusic.music.MusicEntity;
+import org.hibernate.annotations.CreationTimestamp;
+import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -30,6 +32,11 @@ public class PlaylistEntity {
     
     @Column(nullable = false)
     private Integer likes = 0;
+    
+    // ✅ AGREGAR: Fecha de creación
+    @CreationTimestamp
+    @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    private LocalDateTime fechaCreacion;
     
     // Relación muchos a uno con usuario
     @ManyToOne(fetch = FetchType.LAZY)

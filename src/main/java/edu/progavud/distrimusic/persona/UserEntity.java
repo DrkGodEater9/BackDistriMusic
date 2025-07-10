@@ -37,7 +37,6 @@ public class UserEntity extends PersonaEntity {
     @NotBlank(message = "La ubicación es obligatoria")
     private String ubicacion = "Bogotá D.C.";
     
-    // ✅ CAMPO DE EMAIL PARA ENVÍO DE CORREO
     @Column(name = "email", nullable = false, unique = true)
     @Email(message = "El email debe tener un formato válido")
     @NotBlank(message = "El email es obligatorio")
@@ -46,6 +45,20 @@ public class UserEntity extends PersonaEntity {
     // Relación uno a muchos con playlists
     @OneToMany(mappedBy = "usuario", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<PlaylistEntity> playlists = new HashSet<>();
+    
+    // ✅ NUEVO: Sistema de seguimiento de usuarios
+    // Usuarios que YO sigo
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "user_follows",
+        joinColumns = @JoinColumn(name = "follower_id"),
+        inverseJoinColumns = @JoinColumn(name = "following_id")
+    )
+    private Set<UserEntity> siguiendo = new HashSet<>();
+    
+    // Usuarios que ME siguen
+    @ManyToMany(mappedBy = "siguiendo", fetch = FetchType.LAZY)
+    private Set<UserEntity> seguidores = new HashSet<>();
     
     // Constructor personalizado
     public UserEntity(String usuario, String nombre, String contraseña, String codigoEstudiantil, 
@@ -76,6 +89,7 @@ public class UserEntity extends PersonaEntity {
             case "crear_playlist":
             case "comentar_playlist":
             case "dar_like":
+            case "seguir_usuarios":
                 return true;
             case "eliminar_cualquier_playlist":
             case "administrar_usuarios":
@@ -93,5 +107,22 @@ public class UserEntity extends PersonaEntity {
     // Método para información completa
     public String getInfoCompleta() {
         return getDisplayName() + " - " + getInfoEstudiantil() + " - " + ubicacion;
+    }
+    
+    // ✅ NUEVOS: Métodos de utilidad para seguimiento
+    public int getNumeroSeguidores() {
+        return seguidores != null ? seguidores.size() : 0;
+    }
+    
+    public int getNumeroSiguiendo() {
+        return siguiendo != null ? siguiendo.size() : 0;
+    }
+    
+    public boolean estaSiguiendo(UserEntity usuario) {
+        return siguiendo != null && siguiendo.contains(usuario);
+    }
+    
+    public boolean esSeguidor(UserEntity usuario) {
+        return seguidores != null && seguidores.contains(usuario);
     }
 }
