@@ -42,6 +42,10 @@ public class UserEntity extends PersonaEntity {
     @NotBlank(message = "El email es obligatorio")
     private String email;
     
+    // ✅ NUEVO: URL de avatar del usuario
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+    
     // Relación uno a muchos con playlists
     @OneToMany(mappedBy = "usuario", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<PlaylistEntity> playlists = new HashSet<>();

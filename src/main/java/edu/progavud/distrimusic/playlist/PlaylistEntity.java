@@ -33,6 +33,10 @@ public class PlaylistEntity {
     @Column(nullable = false)
     private Integer likes = 0;
     
+    // ✅ NUEVO: URL de imagen de la playlist
+    @Column(name = "image_url")
+    private String imageUrl;
+    
     // ✅ AGREGAR: Fecha de creación
     @CreationTimestamp
     @Column(name = "fecha_creacion", nullable = false, updatable = false)

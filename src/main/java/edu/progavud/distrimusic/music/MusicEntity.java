@@ -37,6 +37,10 @@ public class MusicEntity {
     @Column(nullable = false)
     private Integer likes = 0;
     
+    // ✅ NUEVO: URL de imagen de la canción
+    @Column(name = "image_url")
+    private String imageUrl;
+    
     @CreationTimestamp
     @Column(name = "fecha_publicacion", nullable = false, updatable = false)
     private LocalDateTime fechaPublicacion;
