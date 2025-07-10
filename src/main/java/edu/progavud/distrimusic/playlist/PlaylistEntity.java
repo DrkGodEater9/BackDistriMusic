@@ -1,6 +1,5 @@
 package edu.progavud.distrimusic.playlist;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -22,6 +21,7 @@ import java.util.Objects;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class PlaylistEntity {
 
     @Id
@@ -32,11 +32,8 @@ public class PlaylistEntity {
     @NotBlank(message = "El nombre de la playlist es obligatorio")
     private String nombre;
 
-    @Column(nullable = false)
-    private Boolean esPublica = false;
-
-    @Column(nullable = false)
-    private Integer likes = 0;
+    @Column(name = "es_publica", nullable = false)
+    private Boolean esPublica = true;
 
     @Column(name = "image_url")
     private String imageUrl;
@@ -45,14 +42,11 @@ public class PlaylistEntity {
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
-    // ✅ FIX: Mantener la relación pero sin incluir datos sensibles en JSON
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "playlists", "seguidores", "siguiendo", "password", "email"})
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "playlists", "password", "email", "seguidores", "siguiendo"})
     private UserEntity usuario;
 
-    // ✅ FIX: Usar @JsonIgnore para las canciones
-    @JsonIgnore
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "playlist_songs",

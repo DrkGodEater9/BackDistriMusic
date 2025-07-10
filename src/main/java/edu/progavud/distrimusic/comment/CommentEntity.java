@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import edu.progavud.distrimusic.persona.UserEntity;
 import edu.progavud.distrimusic.playlist.PlaylistEntity;
 import org.hibernate.annotations.CreationTimestamp;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDateTime;
 
 @Entity
@@ -34,11 +35,13 @@ public class CommentEntity {
     // Relación muchos a uno con usuario (muchos comentarios pueden pertenecer a un usuario)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "comments", "playlists", "following", "followers"})
     private UserEntity usuario;
     
     // Relación muchos a uno con playlist (muchos comentarios pueden pertenecer a una playlist)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "playlist_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "comments", "songs", "usuario"})
     private PlaylistEntity playlist;
     
     // Constructor personalizado

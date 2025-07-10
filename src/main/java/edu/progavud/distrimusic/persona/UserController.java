@@ -65,9 +65,21 @@ public class UserController {
     @PostMapping("/{usuario}/follow")
     public ResponseEntity<Map<String, String>> seguirUsuario(
             @PathVariable String usuario,
-            @RequestParam String follower) {
+            @RequestParam(required = false) String follower,
+            @RequestBody(required = false) Map<String, Object> body) {
         try {
-            userService.seguirUsuario(follower, usuario);
+            // Permitir follower por query param o por body JSON
+            String followerUser = follower;
+            if ((followerUser == null || followerUser.isBlank()) && body != null && body.get("follower") != null) {
+                followerUser = String.valueOf(body.get("follower"));
+            }
+            if (followerUser == null || followerUser.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Falta el usuario que sigue (follower)",
+                    "status", "error"
+                ));
+            }
+            userService.seguirUsuario(followerUser, usuario);
             return ResponseEntity.ok(Map.of(
                 "message", "Ahora sigues a " + usuario,
                 "action", "follow",

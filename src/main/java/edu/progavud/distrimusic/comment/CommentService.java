@@ -2,6 +2,8 @@ package edu.progavud.distrimusic.comment;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import edu.progavud.distrimusic.persona.UserEntity;
 import edu.progavud.distrimusic.persona.UserRepository;
 import edu.progavud.distrimusic.playlist.PlaylistEntity;
@@ -19,15 +21,18 @@ public class CommentService {
     public CommentEntity createComment(Long playlistId, String usuario, String contenido) {
         // Verificar que la playlist existe y es pública
         PlaylistEntity playlist = playlistRepository.findById(playlistId)
-            .orElseThrow(() -> new RuntimeException("Playlist no encontrada"));
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Playlist no encontrada"));
         
         if (!playlist.getEsPublica()) {
-            throw new RuntimeException("Solo se pueden comentar playlists públicas");
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN, "Solo se pueden comentar playlists públicas");
         }
         
         // Verificar que el usuario existe
         UserEntity user = userRepository.findByUsuario(usuario)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         
         // Crear el comentario
         CommentEntity comment = new CommentEntity(contenido, user, playlist);
@@ -36,22 +41,30 @@ public class CommentService {
     
     public CommentEntity getCommentById(Long id) {
         return commentRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Comentario no encontrado"));
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Comentario no encontrado"));
     }
     
     public List<CommentEntity> getCommentsByPlaylist(Long playlistId) {
         // Verificar que la playlist es pública antes de mostrar comentarios
         PlaylistEntity playlist = playlistRepository.findById(playlistId)
-            .orElseThrow(() -> new RuntimeException("Playlist no encontrada"));
-        
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Playlist no encontrada"));
+
         if (!playlist.getEsPublica()) {
-            throw new RuntimeException("No se pueden ver comentarios de playlists privadas");
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN, "No se pueden ver comentarios de playlists privadas");
         }
-        
+
         return commentRepository.findByPlaylistIdOrderByIdDesc(playlistId);
     }
     
     public List<CommentEntity> getCommentsByUser(String usuario) {
+        // Verificar que el usuario existe
+        userRepository.findByUsuario(usuario)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+                
         return commentRepository.findByUsuarioUsuarioOrderByIdDesc(usuario);
     }
     
@@ -60,7 +73,8 @@ public class CommentService {
         
         // Verificar que el usuario es el dueño del comentario
         if (!comment.getUsuario().getUsuario().equals(usuario)) {
-            throw new RuntimeException("Solo puedes editar tus propios comentarios");
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN, "Solo puedes editar tus propios comentarios");
         }
         
         comment.setContenido(nuevoContenido);
@@ -75,7 +89,8 @@ public class CommentService {
         boolean isPlaylistOwner = comment.getPlaylist().getUsuario().getUsuario().equals(usuario);
         
         if (!isCommentOwner && !isPlaylistOwner) {
-            throw new RuntimeException("Solo puedes eliminar tus propios comentarios o comentarios en tus playlists");
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN, "Solo puedes eliminar tus propios comentarios o comentarios en tus playlists");
         }
         
         commentRepository.deleteById(id);
