@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import edu.progavud.distrimusic.email.EmailService;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Servicio para gestión de usuarios con email de registro y seguimiento
@@ -11,6 +12,41 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+    /**
+     * Actualiza el perfil del usuario (solo los campos enviados)
+     */
+    public UserEntity updateUserProfile(String usuario, Map<String, Object> updates) {
+        UserEntity user = getUserByUsuario(usuario);
+
+        if (updates.containsKey("nombre")) {
+            String nombre = (String) updates.get("nombre");
+            if (nombre != null && !nombre.isBlank()) user.setNombre(nombre);
+        }
+        if (updates.containsKey("carrera")) {
+            String carrera = (String) updates.get("carrera");
+            user.setCarrera(carrera);
+        }
+        if (updates.containsKey("email")) {
+            String email = (String) updates.get("email");
+            if (email != null && !email.isBlank()) {
+                if (!email.equals(user.getEmail()) && userRepository.existsByEmail(email)) {
+                    throw new RuntimeException("El email ya está registrado");
+                }
+                user.setEmail(email);
+            }
+        }
+        if (updates.containsKey("profileImageUrl")) {
+            String profileImageUrl = (String) updates.get("profileImageUrl");
+            user.setProfileImageUrl(profileImageUrl);
+        }
+        if (updates.containsKey("newPassword")) {
+            String newPassword = (String) updates.get("newPassword");
+            if (newPassword != null && !newPassword.isBlank()) {
+                user.setPassword(newPassword);
+            }
+        }
+        return userRepository.save(user);
+    }
     
     private final UserRepository userRepository;
     private final EmailService emailService;
@@ -20,7 +56,7 @@ public class UserService {
      */
     public UserEntity registerUser(UserEntity user) {
         // Validar que el usuario no exista
-        if (userRepository.existsById(user.getUsuario())) {
+        if (userRepository.existsByUsuario(user.getUsuario())) {
             throw new RuntimeException("El usuario ya existe");
         }
         
@@ -51,7 +87,7 @@ public class UserService {
      * Autentica un usuario con credenciales
      */
     public UserEntity authenticateUser(String usuario, String contraseña) {
-        UserEntity user = userRepository.findById(usuario)
+        UserEntity user = userRepository.findByUsuario(usuario)
             .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         
         if (!user.validarCredenciales(contraseña)) {
@@ -65,7 +101,7 @@ public class UserService {
      * Obtiene un usuario por su nombre de usuario
      */
     public UserEntity getUserByUsuario(String usuario) {
-        return userRepository.findById(usuario)
+        return userRepository.findByUsuario(usuario)
             .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
     }
     
@@ -76,7 +112,7 @@ public class UserService {
         return userRepository.findAll();
     }
     
-    // ✅ Métodos para sistema de seguimiento (solo los que tienes en repository)
+    // ✅ Métodos para sistema de seguimiento
     
     /**
      * Seguir a un usuario

@@ -13,6 +13,22 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class UserController {
+    /**
+     * Actualizar perfil de usuario (nombre, email, carrera, foto, contraseña)
+     * PUT /api/users/{usuario}
+     * Solo actualiza los campos enviados. No requiere contraseña actual.
+     */
+    @PutMapping("/{usuario}")
+    public ResponseEntity<?> updateUserProfile(
+            @PathVariable String usuario,
+            @RequestBody Map<String, Object> updates) {
+        try {
+            UserEntity updated = userService.updateUserProfile(usuario, updates);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
     
     private final UserService userService;
     

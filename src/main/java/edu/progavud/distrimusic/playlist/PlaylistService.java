@@ -8,6 +8,7 @@ import edu.progavud.distrimusic.music.MusicEntity;
 import edu.progavud.distrimusic.music.MusicRepository;
 import java.util.List;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.Optional;
 
 @Service
@@ -128,8 +129,7 @@ public class PlaylistService {
         }
     }
     
-    // ✅ Métodos para manejar canciones con logs detallados
-    
+    // ✅ FIX COMPLETO: Método addSongToPlaylist sin ConcurrentModificationException
     @Transactional
     public PlaylistEntity addSongToPlaylist(Long playlistId, Long songId) {
         log.info("🎵 Intentando agregar canción {} a playlist {}", songId, playlistId);
@@ -144,6 +144,13 @@ public class PlaylistService {
             if (songId == null || songId <= 0) {
                 log.error("❌ ID de canción inválido: {}", songId);
                 throw new RuntimeException("ID de canción debe ser un número positivo");
+            }
+            
+            // ✅ FIX: Verificar existencia usando consulta SQL directa
+            boolean alreadyExists = playlistRepository.existsByIdAndCancionesId(playlistId, songId);
+            if (alreadyExists) {
+                log.warn("⚠️ La canción ya está en la playlist");
+                throw new RuntimeException("La canción ya está en la playlist");
             }
             
             // Buscar playlist
@@ -162,22 +169,25 @@ public class PlaylistService {
             MusicEntity song = songOpt.get();
             log.info("✅ Canción encontrada: {} - {}", song.getTitulo(), song.getArtista());
             
-            // Verificar si la canción ya está en la playlist
-            boolean alreadyExists = playlist.getCanciones().stream()
-                .anyMatch(c -> c.getId().equals(songId));
-                
-            if (alreadyExists) {
-                log.warn("⚠️ La canción ya está en la playlist");
-                throw new RuntimeException("La canción ya está en la playlist");
+            // ✅ FIX: Agregar canción de forma segura
+            log.info("➕ Agregando canción a la playlist...");
+            
+            // Obtener o crear nueva colección para evitar problemas
+            Set<MusicEntity> canciones = playlist.getCanciones();
+            if (canciones == null) {
+                canciones = new HashSet<>();
+                playlist.setCanciones(canciones);
             }
             
-            // Agregar canción
-            log.info("➕ Agregando canción a la playlist...");
-            playlist.getCanciones().add(song);
+            // Crear nueva colección para evitar ConcurrentModificationException
+            Set<MusicEntity> newCanciones = new HashSet<>(canciones);
+            newCanciones.add(song);
+            playlist.setCanciones(newCanciones);
             
             // Guardar cambios
             log.info("💾 Guardando cambios...");
             PlaylistEntity savedPlaylist = playlistRepository.save(playlist);
+            playlistRepository.flush(); // Forzar la escritura
             
             log.info("✅ Canción agregada exitosamente. Total de canciones: {}", savedPlaylist.getCantidadCanciones());
             return savedPlaylist;
@@ -205,7 +215,7 @@ public class PlaylistService {
             
             MusicEntity song = songOpt.get();
             
-            // Verificar si la canción está en la playlist
+            // Verificar si la canción está en la playlist usando ID
             boolean exists = playlist.getCanciones().stream()
                 .anyMatch(c -> c.getId().equals(songId));
                 
@@ -214,10 +224,15 @@ public class PlaylistService {
                 throw new RuntimeException("La canción no está en la playlist");
             }
             
-            // Remover canción
-            playlist.getCanciones().removeIf(c -> c.getId().equals(songId));
+            // ✅ FIX: Remover canción de forma segura
+            Set<MusicEntity> canciones = playlist.getCanciones();
+            Set<MusicEntity> newCanciones = new HashSet<>(canciones);
+            newCanciones.removeIf(c -> c.getId().equals(songId));
+            playlist.setCanciones(newCanciones);
             
             PlaylistEntity savedPlaylist = playlistRepository.save(playlist);
+            playlistRepository.flush();
+            
             log.info("✅ Canción eliminada exitosamente");
             return savedPlaylist;
             
@@ -250,9 +265,8 @@ public class PlaylistService {
     public boolean isSongInPlaylist(Long playlistId, Long songId) {
         try {
             log.info("🔍 Verificando si canción {} está en playlist {}", songId, playlistId);
-            PlaylistEntity playlist = getPlaylistById(playlistId);
-            boolean exists = playlist.getCanciones().stream()
-                .anyMatch(song -> song.getId().equals(songId));
+            // ✅ FIX: Usar consulta SQL directa en lugar de cargar colección
+            boolean exists = playlistRepository.existsByIdAndCancionesId(playlistId, songId);
             log.info("✅ Resultado: {}", exists ? "SÍ está" : "NO está");
             return exists;
         } catch (Exception e) {

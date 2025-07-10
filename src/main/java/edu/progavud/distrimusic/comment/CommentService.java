@@ -26,7 +26,7 @@ public class CommentService {
         }
         
         // Verificar que el usuario existe
-        UserEntity user = userRepository.findById(usuario)
+        UserEntity user = userRepository.findByUsuario(usuario)
             .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         
         // Crear el comentario
