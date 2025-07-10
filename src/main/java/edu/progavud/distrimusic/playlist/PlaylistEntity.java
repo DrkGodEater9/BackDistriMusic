@@ -1,5 +1,6 @@
 package edu.progavud.distrimusic.playlist;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -18,44 +19,45 @@ import java.util.HashSet;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PlaylistEntity {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(nullable = false)
     @NotBlank(message = "El nombre de la playlist es obligatorio")
     private String nombre;
-    
+
     @Column(nullable = false)
     private Boolean esPublica = false;
-    
+
     @Column(nullable = false)
     private Integer likes = 0;
-    
+
     // ✅ NUEVO: URL de imagen de la playlist
     @Column(name = "image_url")
     private String imageUrl;
-    
+
     // ✅ AGREGAR: Fecha de creación
     @CreationTimestamp
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
-    
+
     // Relación muchos a uno con usuario
-    @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "playlists", "seguidores", "siguiendo"})
+    @ManyToOne(fetch = FetchType.EAGER) // Cambiar de LAZY a EAGER
     @JoinColumn(name = "usuario_id", nullable = false)
     private UserEntity usuario;
-    
+
     // Relación muchos a muchos con canciones
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "playlist_songs",
-        joinColumns = @JoinColumn(name = "playlist_id"),
-        inverseJoinColumns = @JoinColumn(name = "song_id")
+            name = "playlist_songs",
+            joinColumns = @JoinColumn(name = "playlist_id"),
+            inverseJoinColumns = @JoinColumn(name = "song_id")
     )
     private Set<MusicEntity> canciones = new HashSet<>();
-    
+
     // Constructor personalizado
     public PlaylistEntity(String nombre, Boolean esPublica, UserEntity usuario) {
         this.nombre = nombre;
