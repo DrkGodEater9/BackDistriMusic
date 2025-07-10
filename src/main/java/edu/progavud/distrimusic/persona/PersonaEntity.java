@@ -3,11 +3,6 @@ package edu.progavud.distrimusic.persona;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
-import lombok.NoArgsConstructorpackage edu.progavud.distrimusic.persona;
-
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
@@ -30,7 +25,10 @@ public abstract class PersonaEntity {
     protected String nombre;
     
     @Column(name = "contraseña", nullable = false)
-    @NotBlank(message = "La contraseña es obligatoria")
+    @Pattern(
+        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
+        message = "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial"
+    )
     protected String contraseña;
     
     // Método abstracto que deben implementar las clases hijas (LSP)

@@ -12,18 +12,19 @@ public class Parcial3Application {
 	public static void main(String[] args) {
 		SpringApplication.run(Parcial3Application.class, args);
 	}
-@Bean
-    //metodo para configurar el acceso al proyecto desde otros dominio o puertos
-    //este metodo permite resolver el problema con las politicas CORS de los navegadores
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/*")                   // Aplica a todas las rutas, despues cada controller le digo cual es pa que sea bonito
-                .allowedOrigins("")                 // Permite cualquier origen, asi no nos complicamos en mirar que puerto trabaja el ide del Frontend jiji
-                .allowedMethods("GET", "POST", "PUT", "DELETE")  // Sólo estos métodos
-                .allowedHeaders("*");                // Permite cualquier encabezado
-            }
-        };
-    }
+
+	@Bean
+	// Método para configurar el acceso al proyecto desde otros dominios o puertos
+	// Este método permite resolver el problema con las políticas CORS de los navegadores
+	public WebMvcConfigurer corsConfigurer() {
+		return new WebMvcConfigurer() {
+			@Override
+			public void addCorsMappings(CorsRegistry registry) {
+				registry.addMapping("/**")                   // ✅ CORREGIDO: "/**" no "/*"
+						.allowedOrigins("*")                 // Permite cualquier origen
+						.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")  // Métodos permitidos
+						.allowedHeaders("*");                // Permite cualquier encabezado
+			}
+		};
+	}
 }
