@@ -13,5 +13,5 @@ public interface MusicRepository extends JpaRepository<MusicEntity, Long> {
     
     List<MusicEntity> findByAlbumContainingIgnoreCase(String album);
     
-    List<MusicEntity> findByOrderByLikesDesc();
+    List<MusicEntity> findAllByOrderByTituloAsc();
 }

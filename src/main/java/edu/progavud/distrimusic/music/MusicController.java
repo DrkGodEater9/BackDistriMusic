@@ -51,12 +51,6 @@ public class MusicController {
         return ResponseEntity.ok(songs);
     }
     
-    @PostMapping("/{id}/like")
-    public ResponseEntity<MusicEntity> likeSong(@PathVariable Long id) {
-        MusicEntity song = musicService.likeSong(id);
-        return ResponseEntity.ok(song);
-    }
-    
     @PutMapping("/{id}")
     public ResponseEntity<MusicEntity> updateSong(@PathVariable Long id, @Valid @RequestBody MusicEntity song) {
         MusicEntity updatedSong = musicService.updateSong(id, song);

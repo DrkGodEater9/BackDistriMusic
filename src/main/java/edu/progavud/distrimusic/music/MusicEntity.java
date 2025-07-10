@@ -34,10 +34,6 @@ public class MusicEntity {
     @NotBlank(message = "El álbum es obligatorio")
     private String album;
     
-    @Column(nullable = false)
-    private Integer likes = 0;
-    
-    // ✅ NUEVO: URL de imagen de la canción
     @Column(name = "image_url")
     private String imageUrl;
     
@@ -50,9 +46,10 @@ public class MusicEntity {
     private Set<PlaylistEntity> playlists = new HashSet<>();
     
     // Constructor personalizado sin relaciones
-    public MusicEntity(String titulo, String artista, String album) {
+    public MusicEntity(String titulo, String artista, String album, String imageUrl) {
         this.titulo = titulo;
         this.artista = artista;
         this.album = album;
+        this.imageUrl = imageUrl;
     }
 }

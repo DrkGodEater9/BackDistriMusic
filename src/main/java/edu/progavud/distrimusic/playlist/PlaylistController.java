@@ -5,7 +5,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import edu.progavud.distrimusic.music.MusicEntity;
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/playlists")
@@ -55,5 +59,59 @@ public class PlaylistController {
     public ResponseEntity<Void> deletePlaylist(@PathVariable Long id) {
         playlistService.deletePlaylist(id);
         return ResponseEntity.noContent().build();
+    }
+    
+    // Nuevos endpoints para manejar canciones en playlists
+    
+    @PostMapping("/{playlistId}/songs/{songId}")
+    public ResponseEntity<Map<String, String>> addSongToPlaylist(
+            @PathVariable Long playlistId, 
+            @PathVariable Long songId) {
+        try {
+            playlistService.addSongToPlaylist(playlistId, songId);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Canción agregada a la playlist exitosamente");
+            response.put("status", "success");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            response.put("status", "error");
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+    
+    @DeleteMapping("/{playlistId}/songs/{songId}")
+    public ResponseEntity<Map<String, String>> removeSongFromPlaylist(
+            @PathVariable Long playlistId, 
+            @PathVariable Long songId) {
+        try {
+            playlistService.removeSongFromPlaylist(playlistId, songId);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Canción eliminada de la playlist exitosamente");
+            response.put("status", "success");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            response.put("status", "error");
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+    
+    @GetMapping("/{playlistId}/songs")
+    public ResponseEntity<Set<MusicEntity>> getPlaylistSongs(@PathVariable Long playlistId) {
+        Set<MusicEntity> songs = playlistService.getPlaylistSongs(playlistId);
+        return ResponseEntity.ok(songs);
+    }
+    
+    @GetMapping("/{playlistId}/songs/{songId}/exists")
+    public ResponseEntity<Map<String, Boolean>> isSongInPlaylist(
+            @PathVariable Long playlistId, 
+            @PathVariable Long songId) {
+        boolean exists = playlistService.isSongInPlaylist(playlistId, songId);
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("exists", exists);
+        return ResponseEntity.ok(response);
     }
 }

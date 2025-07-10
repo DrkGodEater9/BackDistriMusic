@@ -35,12 +35,6 @@ public class MusicService {
         return musicRepository.findByAlbumContainingIgnoreCase(album);
     }
     
-    public MusicEntity likeSong(Long id) {
-        MusicEntity song = getSongById(id);
-        song.setLikes(song.getLikes() + 1);
-        return musicRepository.save(song);
-    }
-    
     public MusicEntity updateSong(Long id, MusicEntity songRequest) {
         MusicEntity existingSong = getSongById(id);
         
@@ -52,6 +46,9 @@ public class MusicService {
         }
         if (songRequest.getAlbum() != null) {
             existingSong.setAlbum(songRequest.getAlbum());
+        }
+        if (songRequest.getImageUrl() != null) {
+            existingSong.setImageUrl(songRequest.getImageUrl());
         }
         
         return musicRepository.save(existingSong);
