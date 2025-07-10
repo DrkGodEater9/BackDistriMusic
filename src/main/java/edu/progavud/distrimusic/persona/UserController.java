@@ -1,4 +1,4 @@
-package edu.progavud.distrimusic.user;
+package edu.progavud.distrimusic.persona;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
