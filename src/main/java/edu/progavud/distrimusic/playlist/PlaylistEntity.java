@@ -1,9 +1,11 @@
 package edu.progavud.distrimusic.playlist;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import edu.progavud.distrimusic.persona.UserEntity;
@@ -12,10 +14,12 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Objects;
 
 @Entity
 @Table(name = "playlists")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class PlaylistEntity {
@@ -34,22 +38,21 @@ public class PlaylistEntity {
     @Column(nullable = false)
     private Integer likes = 0;
 
-    // ✅ NUEVO: URL de imagen de la playlist
     @Column(name = "image_url")
     private String imageUrl;
 
-    // ✅ AGREGAR: Fecha de creación
     @CreationTimestamp
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
-    // Relación muchos a uno con usuario
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "playlists", "seguidores", "siguiendo"})
-    @ManyToOne(fetch = FetchType.EAGER) // Cambiar de LAZY a EAGER
+    // ✅ FIX: Mantener la relación pero sin incluir datos sensibles en JSON
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "playlists", "seguidores", "siguiendo", "password", "email"})
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "usuario_id", nullable = false)
     private UserEntity usuario;
 
-    // Relación muchos a muchos con canciones
+    // ✅ FIX: Usar @JsonIgnore para las canciones
+    @JsonIgnore
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "playlist_songs",
@@ -63,5 +66,38 @@ public class PlaylistEntity {
         this.nombre = nombre;
         this.esPublica = esPublica;
         this.usuario = usuario;
+    }
+    
+    // ✅ Métodos helper para obtener información sin cargar relaciones
+    public int getCantidadCanciones() {
+        return canciones != null ? canciones.size() : 0;
+    }
+    
+    public String getNombreUsuario() {
+        return usuario != null ? usuario.getUsuario() : null;
+    }
+    
+    // ✅ FIX: Implementar hashCode y equals SOLO basado en ID
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PlaylistEntity that = (PlaylistEntity) o;
+        return Objects.equals(id, that.id);
+    }
+    
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+    
+    @Override
+    public String toString() {
+        return "PlaylistEntity{" +
+                "id=" + id +
+                ", nombre='" + nombre + '\'' +
+                ", esPublica=" + esPublica +
+                ", usuario=" + (usuario != null ? usuario.getUsuario() : null) +
+                '}';
     }
 }

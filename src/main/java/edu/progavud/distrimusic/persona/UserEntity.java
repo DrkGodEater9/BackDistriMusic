@@ -3,8 +3,8 @@ package edu.progavud.distrimusic.persona;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import edu.progavud.distrimusic.playlist.PlaylistEntity;
@@ -12,123 +12,62 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Objects;
 
 @Entity
-@Table(name = "usuarios")
-@DiscriminatorValue("USUARIO")
-@Data
-@EqualsAndHashCode(callSuper = true)
+@Table(name = "users")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserEntity extends PersonaEntity {
+public class UserEntity {
 
-    @Column(name = "codigo_estudiantil", unique = true, nullable = false)
-    @NotBlank(message = "El código estudiantil es obligatorio")
-    private String codigoEstudiantil;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(name = "carrera", nullable = false)
-    @NotBlank(message = "La carrera es obligatoria")
-    private String carrera;
+    @Column(unique = true, nullable = false)
+    @NotBlank(message = "El usuario es obligatorio")
+    private String usuario;
+
+    @Column(nullable = false)
+    @NotBlank(message = "La contraseña es obligatoria")
+    private String password;
+
+    @Column(unique = true, nullable = false)
+    @Email(message = "El email debe ser válido")
+    @NotBlank(message = "El email es obligatorio")
+    private String email;
 
     @CreationTimestamp
     @Column(name = "fecha_registro", nullable = false, updatable = false)
     private LocalDateTime fechaRegistro;
 
-    @Column(name = "ubicacion", nullable = false)
-    @NotBlank(message = "La ubicación es obligatoria")
-    private String ubicacion = "Bogotá D.C.";
-
-    @Column(name = "email", nullable = false, unique = true)
-    @Email(message = "El email debe tener un formato válido")
-    @NotBlank(message = "El email es obligatorio")
-    private String email;
-
-    // ✅ NUEVO: URL de avatar del usuario
-    @Column(name = "avatar_url")
-    private String avatarUrl;
-
-    // Relación uno a muchos con playlists
-    @JsonIgnore // Ignorar para evitar referencias circulares
-    @OneToMany(mappedBy = "usuario", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    // ✅ FIX: Usar @JsonIgnore para evitar referencias circulares
+    @JsonIgnore
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<PlaylistEntity> playlists = new HashSet<>();
 
-    // ✅ AGREGAR ESTAS ANOTACIONES
-    @JsonIgnore
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "user_follows",
-            joinColumns = @JoinColumn(name = "follower_id"),
-            inverseJoinColumns = @JoinColumn(name = "following_id")
-    )
-    private Set<UserEntity> siguiendo = new HashSet<>();
-
-    @JsonIgnore
-    @ManyToMany(mappedBy = "siguiendo", fetch = FetchType.LAZY)
-    private Set<UserEntity> seguidores = new HashSet<>();
-
-    // Constructor personalizado
-    public UserEntity(String usuario, String nombre, String contraseña, String codigoEstudiantil,
-            String carrera, String ubicacion, String email) {
-        super(usuario, nombre, contraseña);
-        this.codigoEstudiantil = codigoEstudiantil;
-        this.carrera = carrera;
-        this.ubicacion = ubicacion;
-        this.email = email;
-    }
-
-    // Constructor sin ubicación (usa default)
-    public UserEntity(String usuario, String nombre, String contraseña, String codigoEstudiantil,
-            String carrera, String email) {
-        this(usuario, nombre, contraseña, codigoEstudiantil, carrera, "Bogotá D.C.", email);
-    }
-
-    // Implementación del método abstracto (LSP - cumple el contrato)
+    // ✅ FIX: Implementar hashCode y equals SOLO basado en ID
     @Override
-    public String getTipoPersona() {
-        return "USUARIO";
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserEntity that = (UserEntity) o;
+        return Objects.equals(id, that.id);
     }
-
-    // Sobrescribir método para comportamiento específico de Usuario (LSP)
+    
     @Override
-    public boolean puedeRealizarAccion(String accion) {
-        switch (accion.toLowerCase()) {
-            case "crear_playlist":
-            case "comentar_playlist":
-            case "dar_like":
-            case "seguir_usuarios":
-                return true;
-            case "eliminar_cualquier_playlist":
-            case "administrar_usuarios":
-                return false; // Solo administradores pueden hacer esto
-            default:
-                return super.puedeRealizarAccion(accion);
-        }
+    public int hashCode() {
+        return Objects.hash(id);
     }
-
-    // Método específico de Usuario
-    public String getInfoEstudiantil() {
-        return "Estudiante de " + carrera + " (Código: " + codigoEstudiantil + ")";
-    }
-
-    // Método para información completa
-    public String getInfoCompleta() {
-        return getDisplayName() + " - " + getInfoEstudiantil() + " - " + ubicacion;
-    }
-
-    // ✅ NUEVOS: Métodos de utilidad para seguimiento
-    public int getNumeroSeguidores() {
-        return seguidores != null ? seguidores.size() : 0;
-    }
-
-    public int getNumeroSiguiendo() {
-        return siguiendo != null ? siguiendo.size() : 0;
-    }
-
-    public boolean estaSiguiendo(UserEntity usuario) {
-        return siguiendo != null && siguiendo.contains(usuario);
-    }
-
-    public boolean esSeguidor(UserEntity usuario) {
-        return seguidores != null && seguidores.contains(usuario);
+    
+    @Override
+    public String toString() {
+        return "UserEntity{" +
+                "id=" + id +
+                ", usuario='" + usuario + '\'' +
+                ", email='" + email + '\'' +
+                '}';
     }
 }
