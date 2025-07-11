@@ -12,6 +12,23 @@ import java.util.Set;
 import java.util.Map;
 import java.util.HashMap;
 
+/**
+ * Controlador REST para la gestión de playlists.
+ * 
+ * Esta clase expone endpoints REST para todas las operaciones relacionadas con playlists:
+ * - Operaciones CRUD básicas
+ * - Gestión de canciones en playlists
+ * - Consultas específicas (playlists públicas, por usuario)
+ * 
+ * Implementa manejo detallado de errores y logging para facilitar el debugging.
+ * Todos los endpoints están protegidos contra CORS.
+ *
+ * @author Batapop
+ * @author Cabrito
+ * @author AlexM
+ * @version 1.0
+ * @since 2025-07-10
+ */
 @RestController
 @RequestMapping("/api/playlists")
 @RequiredArgsConstructor
@@ -21,6 +38,12 @@ public class PlaylistController {
     
     private final PlaylistService playlistService;
     
+    /**
+     * Crea una nueva playlist.
+     *
+     * @param playlist datos de la playlist a crear
+     * @return ResponseEntity con la playlist creada y status 201 (CREATED)
+     */
     @PostMapping
     public ResponseEntity<PlaylistEntity> createPlaylist(@Valid @RequestBody PlaylistEntity playlist) {
         try {
@@ -32,6 +55,12 @@ public class PlaylistController {
         }
     }
     
+    /**
+     * Obtiene una playlist específica por su ID.
+     *
+     * @param id identificador de la playlist
+     * @return ResponseEntity con la playlist encontrada
+     */
     @GetMapping("/{id}")
     public ResponseEntity<PlaylistEntity> getPlaylistById(@PathVariable Long id) {
         try {
@@ -54,6 +83,11 @@ public class PlaylistController {
         }
     }
     
+    /**
+     * Obtiene todas las playlists del sistema.
+     *
+     * @return ResponseEntity con la lista de playlists
+     */
     @GetMapping
     public ResponseEntity<List<PlaylistEntity>> getAllPlaylists() {
         try {
@@ -65,6 +99,11 @@ public class PlaylistController {
         }
     }
     
+    /**
+     * Obtiene todas las playlists públicas.
+     *
+     * @return ResponseEntity con la lista de playlists públicas
+     */
     @GetMapping("/public")
     public ResponseEntity<List<PlaylistEntity>> getPublicPlaylists() {
         try {
@@ -76,6 +115,12 @@ public class PlaylistController {
         }
     }
     
+    /**
+     * Obtiene todas las playlists de un usuario específico.
+     *
+     * @param usuario nombre de usuario
+     * @return ResponseEntity con la lista de playlists del usuario
+     */
     @GetMapping("/user/{usuario}")
     public ResponseEntity<List<PlaylistEntity>> getPlaylistsByUser(@PathVariable String usuario) {
         try {
@@ -87,6 +132,13 @@ public class PlaylistController {
         }
     }
     
+    /**
+     * Actualiza los datos de una playlist existente.
+     *
+     * @param id identificador de la playlist
+     * @param playlist nuevos datos de la playlist
+     * @return ResponseEntity con la playlist actualizada
+     */
     @PutMapping("/{id}")
     public ResponseEntity<PlaylistEntity> updatePlaylist(@PathVariable Long id, @Valid @RequestBody PlaylistEntity playlist) {
         try {
@@ -105,6 +157,12 @@ public class PlaylistController {
         }
     }
     
+    /**
+     * Elimina una playlist del sistema.
+     *
+     * @param id identificador de la playlist
+     * @return ResponseEntity sin contenido y status 204 (NO_CONTENT)
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePlaylist(@PathVariable Long id) {
         try {
@@ -120,8 +178,13 @@ public class PlaylistController {
         }
     }
     
-    // ✅ FIX: Usar String en lugar de Map para respuestas simples
-    
+    /**
+     * Agrega una canción a una playlist.
+     *
+     * @param playlistId identificador de la playlist
+     * @param songId identificador de la canción
+     * @return ResponseEntity con mensaje de confirmación
+     */
     @PostMapping("/{playlistId}/songs/{songId}")
     public ResponseEntity<String> addSongToPlaylist(
             @PathVariable Long playlistId, 
@@ -142,6 +205,13 @@ public class PlaylistController {
         }
     }
     
+    /**
+     * Remueve una canción de una playlist.
+     *
+     * @param playlistId identificador de la playlist
+     * @param songId identificador de la canción
+     * @return ResponseEntity con mensaje de confirmación
+     */
     @DeleteMapping("/{playlistId}/songs/{songId}")
     public ResponseEntity<String> removeSongFromPlaylist(
             @PathVariable Long playlistId, 
@@ -162,6 +232,12 @@ public class PlaylistController {
         }
     }
     
+    /**
+     * Obtiene todas las canciones de una playlist.
+     *
+     * @param playlistId identificador de la playlist
+     * @return ResponseEntity con el conjunto de canciones
+     */
     @GetMapping("/{playlistId}/songs")
     public ResponseEntity<Set<MusicEntity>> getPlaylistSongs(@PathVariable Long playlistId) {
         try {
@@ -180,6 +256,13 @@ public class PlaylistController {
         }
     }
     
+    /**
+     * Verifica si una canción está en una playlist.
+     *
+     * @param playlistId identificador de la playlist
+     * @param songId identificador de la canción
+     * @return ResponseEntity con booleano indicando existencia
+     */
     @GetMapping("/{playlistId}/songs/{songId}/exists")
     public ResponseEntity<Boolean> isSongInPlaylist(
             @PathVariable Long playlistId, 

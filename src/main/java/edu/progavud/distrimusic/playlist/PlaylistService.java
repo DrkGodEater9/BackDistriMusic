@@ -11,6 +11,23 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Optional;
 
+/**
+ * Servicio que implementa la lógica de negocio relacionada con las playlists.
+ * 
+ * Esta clase maneja todas las operaciones relacionadas con playlists, incluyendo:
+ * - Creación y gestión de playlists
+ * - Manejo de canciones dentro de las playlists
+ * - Gestión de privacidad (pública/privada)
+ * 
+ * Implementa manejo seguro de colecciones para evitar ConcurrentModificationException
+ * y optimizaciones para el manejo de lazy loading.
+ *
+ * @author Batapop
+ * @author Cabrito
+ * @author AlexM
+ * @version 1.0
+ * @since 2025-07-10
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -19,6 +36,13 @@ public class PlaylistService {
     private final PlaylistRepository playlistRepository;
     private final MusicRepository musicRepository;
     
+    /**
+     * Crea una nueva playlist.
+     *
+     * @param playlist datos de la playlist a crear
+     * @return la playlist creada
+     * @throws RuntimeException si ocurre un error durante la creación
+     */
     @Transactional
     public PlaylistEntity createPlaylist(PlaylistEntity playlist) {
         try {
@@ -32,6 +56,13 @@ public class PlaylistService {
         }
     }
     
+    /**
+     * Obtiene una playlist por su ID.
+     *
+     * @param id identificador de la playlist
+     * @return la playlist encontrada
+     * @throws RuntimeException si la playlist no existe
+     */
     @Transactional(readOnly = true)
     public PlaylistEntity getPlaylistById(Long id) {
         log.info("🔍 Buscando playlist con ID: {}", id);
@@ -46,6 +77,12 @@ public class PlaylistService {
         }
     }
     
+    /**
+     * Obtiene todas las playlists del sistema.
+     *
+     * @return lista de todas las playlists
+     * @throws RuntimeException si ocurre un error al obtener las playlists
+     */
     @Transactional(readOnly = true)
     public List<PlaylistEntity> getAllPlaylists() {
         try {
@@ -59,6 +96,12 @@ public class PlaylistService {
         }
     }
     
+    /**
+     * Obtiene todas las playlists públicas.
+     *
+     * @return lista de playlists públicas
+     * @throws RuntimeException si ocurre un error al obtener las playlists
+     */
     @Transactional(readOnly = true)
     public List<PlaylistEntity> getPublicPlaylists() {
         try {
@@ -72,6 +115,13 @@ public class PlaylistService {
         }
     }
     
+    /**
+     * Obtiene todas las playlists de un usuario específico.
+     *
+     * @param usuario nombre de usuario del propietario
+     * @return lista de playlists del usuario
+     * @throws RuntimeException si ocurre un error al obtener las playlists
+     */
     @Transactional(readOnly = true)
     public List<PlaylistEntity> getPlaylistsByUser(String usuario) {
         try {
@@ -85,6 +135,14 @@ public class PlaylistService {
         }
     }
     
+    /**
+     * Actualiza los datos de una playlist existente.
+     *
+     * @param id identificador de la playlist
+     * @param playlistRequest nuevos datos de la playlist
+     * @return la playlist actualizada
+     * @throws RuntimeException si la playlist no existe o hay error en la actualización
+     */
     @Transactional
     public PlaylistEntity updatePlaylist(Long id, PlaylistEntity playlistRequest) {
         try {
@@ -113,6 +171,12 @@ public class PlaylistService {
         }
     }
     
+    /**
+     * Elimina una playlist del sistema.
+     *
+     * @param id identificador de la playlist
+     * @throws RuntimeException si la playlist no existe o hay error en la eliminación
+     */
     @Transactional
     public void deletePlaylist(Long id) {
         try {
@@ -129,7 +193,15 @@ public class PlaylistService {
         }
     }
     
-    // ✅ FIX COMPLETO: Método addSongToPlaylist sin ConcurrentModificationException
+    /**
+     * Agrega una canción a una playlist.
+     * Implementa manejo seguro de colecciones para evitar ConcurrentModificationException.
+     *
+     * @param playlistId identificador de la playlist
+     * @param songId identificador de la canción
+     * @return la playlist actualizada
+     * @throws RuntimeException si la playlist o canción no existen, o si la canción ya está en la playlist
+     */
     @Transactional
     public PlaylistEntity addSongToPlaylist(Long playlistId, Long songId) {
         log.info("🎵 Intentando agregar canción {} a playlist {}", songId, playlistId);
@@ -201,6 +273,15 @@ public class PlaylistService {
         }
     }
     
+    /**
+     * Remueve una canción de una playlist.
+     * Implementa manejo seguro de colecciones para evitar ConcurrentModificationException.
+     *
+     * @param playlistId identificador de la playlist
+     * @param songId identificador de la canción
+     * @return la playlist actualizada
+     * @throws RuntimeException si la playlist o canción no existen, o si la canción no está en la playlist
+     */
     @Transactional
     public PlaylistEntity removeSongFromPlaylist(Long playlistId, Long songId) {
         log.info("🗑️ Intentando remover canción {} de playlist {}", songId, playlistId);
@@ -245,6 +326,14 @@ public class PlaylistService {
         }
     }
     
+    /**
+     * Obtiene todas las canciones de una playlist.
+     * Fuerza la carga lazy de la colección de canciones.
+     *
+     * @param playlistId identificador de la playlist
+     * @return conjunto de canciones en la playlist
+     * @throws RuntimeException si la playlist no existe o hay error al obtener las canciones
+     */
     @Transactional(readOnly = true)
     public Set<MusicEntity> getPlaylistSongs(Long playlistId) {
         try {
@@ -261,6 +350,14 @@ public class PlaylistService {
         }
     }
     
+    /**
+     * Verifica si una canción está en una playlist.
+     * Usa una consulta SQL optimizada para evitar cargar la colección completa.
+     *
+     * @param playlistId identificador de la playlist
+     * @param songId identificador de la canción
+     * @return true si la canción está en la playlist
+     */
     @Transactional(readOnly = true)
     public boolean isSongInPlaylist(Long playlistId, Long songId) {
         try {

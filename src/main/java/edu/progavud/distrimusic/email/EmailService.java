@@ -12,10 +12,22 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Servicio para envío REAL de correos electrónicos
- * Cumple con el requerimiento del examen de enviar email al registrarse
- * @author Tu nombre
+ * Servicio para el envío de correos electrónicos en la aplicación DistriMusic.
+ * 
+ * Esta clase implementa la funcionalidad de envío de correos electrónicos utilizando
+ * Spring Mail. Proporciona soporte para envío de correos HTML y texto plano, con un
+ * sistema de fallback para garantizar la entrega de mensajes.
+ * 
+ * La configuración del servidor SMTP se realiza a través de application.properties
+ * con las siguientes propiedades:
+ * - app.mail.from: dirección de correo del remitente
+ * - app.mail.from-name: nombre mostrado del remitente
+ *
+ * @author Batapop
+ * @author Cabrito
+ * @author AlexM
  * @version 1.0
+ * @since 2025-07-10
  */
 @Service
 @Slf4j
@@ -31,12 +43,17 @@ public class EmailService {
     private String fromName;
     
     /**
-     * Envía email REAL de registro al usuario
-     * @param usuario nombre de usuario
-     * @param nombre nombre completo
-     * @param email email del usuario (donde llegará el correo)
-     * @param carrera carrera del estudiante
-     * @param codigoEstudiantil código estudiantil
+     * Envía un correo electrónico de bienvenida al usuario recién registrado.
+     * 
+     * Este método intenta primero enviar un correo usando MimeMessage para soporte
+     * de contenido enriquecido. Si falla, recurre a SimpleMailMessage como fallback.
+     * Registra todos los intentos y resultados en el log del sistema.
+     *
+     * @param usuario nombre de usuario en la plataforma
+     * @param nombre nombre completo del estudiante
+     * @param email dirección de correo electrónico del destinatario
+     * @param carrera carrera universitaria del estudiante
+     * @param codigoEstudiantil código de identificación estudiantil
      */
     public void enviarEmailRegistro(String usuario, String nombre, String email, String carrera, String codigoEstudiantil) {
         try {
@@ -76,7 +93,16 @@ public class EmailService {
     }
     
     /**
-     * Fallback con SimpleMailMessage si falla MimeMessage
+     * Método de respaldo para enviar correos en formato simple.
+     * 
+     * Se utiliza cuando falla el envío mediante MimeMessage. Utiliza SimpleMailMessage
+     * que solo soporta texto plano pero es más robusto.
+     *
+     * @param usuario nombre de usuario
+     * @param nombre nombre completo
+     * @param email dirección de correo del destinatario
+     * @param carrera carrera universitaria
+     * @param codigoEstudiantil código estudiantil
      */
     private void enviarEmailSimple(String usuario, String nombre, String email, String carrera, String codigoEstudiantil) {
         try {
@@ -97,7 +123,20 @@ public class EmailService {
     }
     
     /**
-     * Crea el contenido del email de registro
+     * Genera el contenido del correo de bienvenida.
+     * 
+     * Crea un mensaje personalizado con los datos del usuario y la información
+     * relevante sobre la plataforma DistriMusic. El mensaje incluye:
+     * - Datos de la cuenta
+     * - Funcionalidades disponibles
+     * - URL de acceso
+     * - Información institucional
+     *
+     * @param usuario nombre de usuario
+     * @param nombre nombre completo
+     * @param carrera carrera universitaria
+     * @param codigoEstudiantil código estudiantil
+     * @return String con el contenido formateado del correo
      */
     private String crearContenidoEmail(String usuario, String nombre, String carrera, String codigoEstudiantil) {
         return String.format("""
@@ -122,7 +161,6 @@ public class EmailService {
             • Conectar con estudiantes de tu carrera
             
             🚀 ¡EMPIEZA AHORA!
-            Accede en: http://localhost:8090
             Usuario: %s
             
             ¡Disfruta de la música estudiantil! 🎼

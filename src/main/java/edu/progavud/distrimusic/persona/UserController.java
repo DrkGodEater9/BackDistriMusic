@@ -8,15 +8,38 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Controlador REST para la gestión de usuarios.
+ * 
+ * Esta clase expone endpoints REST para todas las operaciones relacionadas con usuarios:
+ * - Registro y autenticación
+ * - Gestión de perfiles
+ * - Sistema de seguimiento entre usuarios
+ * 
+ * Todos los endpoints están protegidos contra CORS y manejan apropiadamente los
+ * errores retornando códigos HTTP adecuados.
+ *
+ * @author Batapop
+ * @author Cabrito
+ * @author AlexM
+ * @version 1.0
+ * @since 2025-07-10
+ */
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class UserController {
+    
+    private final UserService userService;
+    
     /**
-     * Actualizar perfil de usuario (nombre, email, carrera, foto, contraseña)
-     * PUT /api/users/{usuario}
-     * Solo actualiza los campos enviados. No requiere contraseña actual.
+     * Actualiza el perfil de un usuario.
+     * Solo actualiza los campos proporcionados en el mapa de actualizaciones.
+     *
+     * @param usuario nombre del usuario a actualizar
+     * @param updates mapa con los campos a actualizar
+     * @return ResponseEntity con el usuario actualizado o error
      */
     @PutMapping("/{usuario}")
     public ResponseEntity<?> updateUserProfile(
@@ -30,37 +53,61 @@ public class UserController {
         }
     }
     
-    private final UserService userService;
-    
+    /**
+     * Registra un nuevo usuario en el sistema.
+     *
+     * @param user datos del nuevo usuario
+     * @return ResponseEntity con el usuario creado y status 201 (CREATED)
+     */
     @PostMapping("/register")
     public ResponseEntity<UserEntity> registerUser(@Valid @RequestBody UserEntity user) {
         UserEntity savedUser = userService.registerUser(user);
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
     }
     
+    /**
+     * Autentica un usuario en el sistema.
+     *
+     * @param loginRequest credenciales del usuario
+     * @return ResponseEntity con los datos del usuario autenticado
+     */
     @PostMapping("/login")
     public ResponseEntity<UserEntity> loginUser(@RequestBody UserEntity loginRequest) {
         UserEntity user = userService.authenticateUser(loginRequest.getUsuario(), loginRequest.getContraseña());
         return ResponseEntity.ok(user);
     }
     
+    /**
+     * Obtiene los datos de un usuario específico.
+     *
+     * @param usuario nombre del usuario a buscar
+     * @return ResponseEntity con los datos del usuario
+     */
     @GetMapping("/{usuario}")
     public ResponseEntity<UserEntity> getUserByUsuario(@PathVariable String usuario) {
         UserEntity user = userService.getUserByUsuario(usuario);
         return ResponseEntity.ok(user);
     }
     
+    /**
+     * Obtiene la lista de todos los usuarios registrados.
+     *
+     * @return ResponseEntity con la lista de usuarios
+     */
     @GetMapping
     public ResponseEntity<List<UserEntity>> getAllUsers() {
         List<UserEntity> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
     
-    // ✅ Endpoints para sistema de seguimiento (solo los básicos)
-    
     /**
-     * Seguir a un usuario
-     * POST /api/users/{usuario}/follow?follower=usuarioActual
+     * Establece una relación de seguimiento entre dos usuarios.
+     * Acepta el follower tanto por query param como por body JSON.
+     *
+     * @param usuario usuario a seguir
+     * @param follower usuario que sigue (opcional por query param)
+     * @param body body JSON que puede contener el follower (opcional)
+     * @return ResponseEntity con mensaje de confirmación
      */
     @PostMapping("/{usuario}/follow")
     public ResponseEntity<Map<String, String>> seguirUsuario(
@@ -94,8 +141,11 @@ public class UserController {
     }
     
     /**
-     * Dejar de seguir a un usuario
-     * DELETE /api/users/{usuario}/follow?follower=usuarioActual
+     * Elimina una relación de seguimiento entre dos usuarios.
+     *
+     * @param usuario usuario a dejar de seguir
+     * @param follower usuario que deja de seguir
+     * @return ResponseEntity con mensaje de confirmación
      */
     @DeleteMapping("/{usuario}/follow")
     public ResponseEntity<Map<String, String>> dejarDeSeguir(
@@ -117,8 +167,10 @@ public class UserController {
     }
     
     /**
-     * Obtener seguidores de un usuario
-     * GET /api/users/{usuario}/followers
+     * Obtiene la lista de seguidores de un usuario.
+     *
+     * @param usuario nombre del usuario
+     * @return ResponseEntity con la lista de seguidores
      */
     @GetMapping("/{usuario}/followers")
     public ResponseEntity<List<UserEntity>> getSeguidores(@PathVariable String usuario) {
@@ -127,8 +179,10 @@ public class UserController {
     }
     
     /**
-     * Obtener usuarios que sigue un usuario
-     * GET /api/users/{usuario}/following
+     * Obtiene la lista de usuarios que sigue un usuario.
+     *
+     * @param usuario nombre del usuario
+     * @return ResponseEntity con la lista de usuarios seguidos
      */
     @GetMapping("/{usuario}/following")
     public ResponseEntity<List<UserEntity>> getSiguiendo(@PathVariable String usuario) {
@@ -137,8 +191,11 @@ public class UserController {
     }
     
     /**
-     * Verificar si un usuario sigue a otro
-     * GET /api/users/{usuario}/is-following?follower=usuarioActual
+     * Verifica si existe una relación de seguimiento entre dos usuarios.
+     *
+     * @param usuario usuario potencialmente seguido
+     * @param follower usuario potencialmente seguidor
+     * @return ResponseEntity con un booleano indicando la relación
      */
     @GetMapping("/{usuario}/is-following")
     public ResponseEntity<Map<String, Boolean>> verificarSeguimiento(
