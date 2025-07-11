@@ -8,12 +8,10 @@ import java.util.Map;
 
 /**
  * Servicio que implementa la lógica de negocio relacionada con los usuarios.
- * 
- * Esta clase maneja todas las operaciones relacionadas con usuarios, incluyendo:
- * - Registro y autenticación de usuarios
- * - Gestión de perfiles
- * - Sistema de seguimiento entre usuarios
- * - Envío de emails de bienvenida
+ *
+ * Esta clase maneja todas las operaciones relacionadas con usuarios,
+ * incluyendo: - Registro y autenticación de usuarios - Gestión de perfiles -
+ * Sistema de seguimiento entre usuarios - Envío de emails de bienvenida
  *
  * @author Batapop
  * @author Cabrito
@@ -24,13 +22,13 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    
+
     private final UserRepository userRepository;
     private final EmailService emailService;
-    
+
     /**
-     * Actualiza el perfil de un usuario existente.
-     * Solo actualiza los campos que están presentes en el mapa de actualizaciones.
+     * Actualiza el perfil de un usuario existente. Solo actualiza los campos
+     * que están presentes en el mapa de actualizaciones.
      *
      * @param usuario nombre de usuario a actualizar
      * @param updates mapa con los campos a actualizar
@@ -42,7 +40,9 @@ public class UserService {
 
         if (updates.containsKey("nombre")) {
             String nombre = (String) updates.get("nombre");
-            if (nombre != null && !nombre.isBlank()) user.setNombre(nombre);
+            if (nombre != null && !nombre.isBlank()) {
+                user.setNombre(nombre);
+            }
         }
         if (updates.containsKey("carrera")) {
             String carrera = (String) updates.get("carrera");
@@ -52,7 +52,7 @@ public class UserService {
             String email = (String) updates.get("email");
             if (email != null && !email.isBlank()) {
                 if (!email.equals(user.getEmail()) && userRepository.existsByEmail(email)) {
-                    throw new RuntimeException("El email ya está registrado");
+                    throw new RuntimeException("El correo electrónico '" + email + "' ya está registrado. Por favor usa otro correo electrónico.");
                 }
                 user.setEmail(email);
             }
@@ -69,7 +69,7 @@ public class UserService {
         }
         return userRepository.save(user);
     }
-    
+
     /**
      * Registra un nuevo usuario en el sistema y envía un email de bienvenida.
      *
@@ -80,51 +80,52 @@ public class UserService {
     public UserEntity registerUser(UserEntity user) {
         // Validar que el usuario no exista
         if (userRepository.existsByUsuario(user.getUsuario())) {
-            throw new RuntimeException("El usuario ya existe");
+            throw new RuntimeException("El nombre de usuario '" + user.getUsuario() + "' ya está registrado. Por favor elige otro nombre de usuario.");
         }
-        
+
         if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("El email ya está registrado");
+            throw new RuntimeException("El correo electrónico '" + user.getEmail() + "' ya está registrado. Por favor usa otro correo electrónico.");
         }
-        
+
         // Guardar usuario
         UserEntity savedUser = userRepository.save(user);
-        
+
         // ENVIAR EMAIL DE REGISTRO
         try {
             emailService.enviarEmailRegistro(
-                savedUser.getUsuario(),
-                savedUser.getNombre(),
-                savedUser.getEmail(),
-                savedUser.getCarrera(),
-                savedUser.getCodigoEstudiantil()
+                    savedUser.getUsuario(),
+                    savedUser.getNombre(),
+                    savedUser.getEmail(),
+                    savedUser.getCarrera(),
+                    savedUser.getCodigoEstudiantil()
             );
         } catch (Exception e) {
             System.err.println("⚠️ Error enviando email: " + e.getMessage());
         }
-        
+
         return savedUser;
     }
-    
+
     /**
      * Autentica un usuario en el sistema.
      *
      * @param usuario nombre de usuario
      * @param contraseña contraseña del usuario
      * @return el usuario autenticado
-     * @throws RuntimeException si el usuario no existe o la contraseña es incorrecta
+     * @throws RuntimeException si el usuario no existe o la contraseña es
+     * incorrecta
      */
     public UserEntity authenticateUser(String usuario, String contraseña) {
         UserEntity user = userRepository.findByUsuario(usuario)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
         if (!user.validarCredenciales(contraseña)) {
             throw new RuntimeException("Contraseña incorrecta");
         }
-        
+
         return user;
     }
-    
+
     /**
      * Busca y retorna un usuario por su nombre de usuario.
      *
@@ -134,9 +135,9 @@ public class UserService {
      */
     public UserEntity getUserByUsuario(String usuario) {
         return userRepository.findByUsuario(usuario)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
     }
-    
+
     /**
      * Obtiene la lista de todos los usuarios registrados.
      *
@@ -145,33 +146,34 @@ public class UserService {
     public List<UserEntity> getAllUsers() {
         return userRepository.findAll();
     }
-    
+
     /**
      * Establece una relación de seguimiento entre dos usuarios.
      *
      * @param usuarioActual nombre del usuario que va a seguir
      * @param usuarioASeguir nombre del usuario a ser seguido
-     * @throws RuntimeException si el usuario intenta seguirse a sí mismo o ya sigue al usuario
+     * @throws RuntimeException si el usuario intenta seguirse a sí mismo o ya
+     * sigue al usuario
      */
     public void seguirUsuario(String usuarioActual, String usuarioASeguir) {
         if (usuarioActual.equals(usuarioASeguir)) {
             throw new RuntimeException("No puedes seguirte a ti mismo");
         }
-        
+
         UserEntity follower = getUserByUsuario(usuarioActual);
         UserEntity following = getUserByUsuario(usuarioASeguir);
-        
+
         if (follower.estaSiguiendo(following)) {
             throw new RuntimeException("Ya sigues a este usuario");
         }
-        
+
         follower.getSiguiendo().add(following);
         following.getSeguidores().add(follower);
-        
+
         userRepository.save(follower);
         userRepository.save(following);
     }
-    
+
     /**
      * Elimina una relación de seguimiento entre dos usuarios.
      *
@@ -182,18 +184,18 @@ public class UserService {
     public void dejarDeSeguir(String usuarioActual, String usuarioADejar) {
         UserEntity follower = getUserByUsuario(usuarioActual);
         UserEntity following = getUserByUsuario(usuarioADejar);
-        
+
         if (!follower.estaSiguiendo(following)) {
             throw new RuntimeException("No sigues a este usuario");
         }
-        
+
         follower.getSiguiendo().remove(following);
         following.getSeguidores().remove(follower);
-        
+
         userRepository.save(follower);
         userRepository.save(following);
     }
-    
+
     /**
      * Obtiene la lista de seguidores de un usuario.
      *
@@ -203,7 +205,7 @@ public class UserService {
     public List<UserEntity> getSeguidores(String usuario) {
         return userRepository.findSeguidoresByUsuario(usuario);
     }
-    
+
     /**
      * Obtiene la lista de usuarios que sigue un usuario.
      *
@@ -213,7 +215,7 @@ public class UserService {
     public List<UserEntity> getSiguiendo(String usuario) {
         return userRepository.findSiguiendoByUsuario(usuario);
     }
-    
+
     /**
      * Verifica si existe una relación de seguimiento entre dos usuarios.
      *
