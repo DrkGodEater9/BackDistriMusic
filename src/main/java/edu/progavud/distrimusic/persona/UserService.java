@@ -2,16 +2,22 @@ package edu.progavud.distrimusic.persona;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import edu.progavud.distrimusic.email.EmailService;
+import edu.progavud.distrimusic.playlist.PlaylistEntity;
+import edu.progavud.distrimusic.playlist.PlaylistRepository;
+import edu.progavud.distrimusic.comment.CommentEntity;
+import edu.progavud.distrimusic.comment.CommentRepository;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Servicio que implementa la lógica de negocio relacionada con los usuarios.
- *
+ * 
  * Esta clase maneja todas las operaciones relacionadas con usuarios,
  * incluyendo: - Registro y autenticación de usuarios - Gestión de perfiles -
  * Sistema de seguimiento entre usuarios - Envío de emails de bienvenida
+ * - Eliminación completa de usuarios y sus datos relacionados
  *
  * @author Batapop
  * @author Cabrito
@@ -25,6 +31,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final PlaylistRepository playlistRepository;
+    private final CommentRepository commentRepository;
 
     /**
      * Actualiza el perfil de un usuario existente. Solo actualiza los campos
@@ -52,7 +60,7 @@ public class UserService {
             String email = (String) updates.get("email");
             if (email != null && !email.isBlank()) {
                 if (!email.equals(user.getEmail()) && userRepository.existsByEmail(email)) {
-                    throw new RuntimeException("El correo electrónico '" + email + "' ya está registrado. Por favor usa otro correo electrónico.");
+                    throw new RuntimeException("El correo electrónico ya está registrado");
                 }
                 user.setEmail(email);
             }
@@ -78,19 +86,16 @@ public class UserService {
      * @throws RuntimeException si el usuario o email ya existen
      */
     public UserEntity registerUser(UserEntity user) {
-        // Validar que el usuario no exista
         if (userRepository.existsByUsuario(user.getUsuario())) {
-            throw new RuntimeException("El nombre de usuario '" + user.getUsuario() + "' ya está registrado. Por favor elige otro nombre de usuario.");
+            throw new RuntimeException("El nombre de usuario ya está registrado");
         }
 
         if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("El correo electrónico '" + user.getEmail() + "' ya está registrado. Por favor usa otro correo electrónico.");
+            throw new RuntimeException("El correo electrónico ya está registrado");
         }
 
-        // Guardar usuario
         UserEntity savedUser = userRepository.save(user);
 
-        // ENVIAR EMAIL DE REGISTRO
         try {
             emailService.enviarEmailRegistro(
                     savedUser.getUsuario(),
@@ -100,7 +105,7 @@ public class UserService {
                     savedUser.getCodigoEstudiantil()
             );
         } catch (Exception e) {
-            System.err.println("⚠️ Error enviando email: " + e.getMessage());
+            // Email sending failed, but user was created successfully
         }
 
         return savedUser;
@@ -112,8 +117,7 @@ public class UserService {
      * @param usuario nombre de usuario
      * @param contraseña contraseña del usuario
      * @return el usuario autenticado
-     * @throws RuntimeException si el usuario no existe o la contraseña es
-     * incorrecta
+     * @throws RuntimeException si el usuario no existe o la contraseña es incorrecta
      */
     public UserEntity authenticateUser(String usuario, String contraseña) {
         UserEntity user = userRepository.findByUsuario(usuario)
@@ -152,8 +156,7 @@ public class UserService {
      *
      * @param usuarioActual nombre del usuario que va a seguir
      * @param usuarioASeguir nombre del usuario a ser seguido
-     * @throws RuntimeException si el usuario intenta seguirse a sí mismo o ya
-     * sigue al usuario
+     * @throws RuntimeException si el usuario intenta seguirse a sí mismo o ya sigue al usuario
      */
     public void seguirUsuario(String usuarioActual, String usuarioASeguir) {
         if (usuarioActual.equals(usuarioASeguir)) {
@@ -225,5 +228,71 @@ public class UserService {
      */
     public boolean esSeguidor(String follower, String following) {
         return userRepository.isFollowing(follower, following);
+    }
+
+    /**
+     * Elimina un usuario del sistema junto con todos sus datos relacionados.
+     * 
+     * Este método realiza una eliminación completa en cascada que incluye:
+     * - Verificación de credenciales del usuario para seguridad
+     * - Eliminación de todas las relaciones de seguimiento (seguidores y siguiendo)
+     * - Eliminación de todas las playlists creadas por el usuario
+     * - Eliminación de todos los comentarios realizados por el usuario
+     * - Eliminación final del registro del usuario
+     * 
+     * La operación es transaccional, garantizando que todos los datos se eliminen
+     * de forma consistente o que la operación falle completamente sin cambios parciales.
+     *
+     * @param usuario nombre del usuario a eliminar
+     * @param password contraseña del usuario para verificación de seguridad
+     * @throws RuntimeException si el usuario no existe, la contraseña es incorrecta, 
+     *                         o hay errores durante el proceso de eliminación
+     */
+    @Transactional
+    public void deleteUser(String usuario, String password) {
+        UserEntity user = userRepository.findByUsuario(usuario)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        if (!user.validarCredenciales(password)) {
+            throw new RuntimeException("Contraseña incorrecta");
+        }
+
+        try {
+            // Eliminar relaciones de seguimiento
+            List<UserEntity> followers = userRepository.findSeguidoresByUsuario(usuario);
+            for (UserEntity follower : followers) {
+                follower.getSiguiendo().remove(user);
+                userRepository.save(follower);
+            }
+
+            List<UserEntity> following = userRepository.findSiguiendoByUsuario(usuario);
+            for (UserEntity followed : following) {
+                followed.getSeguidores().remove(user);
+                userRepository.save(followed);
+            }
+
+            // Eliminar playlists del usuario
+            List<PlaylistEntity> userPlaylists = playlistRepository.findByUsuarioUsuario(usuario);
+            for (PlaylistEntity playlist : userPlaylists) {
+                playlistRepository.deleteById(playlist.getId());
+            }
+
+            // Eliminar comentarios del usuario
+            List<CommentEntity> userComments = commentRepository.findByUsuarioUsuarioOrderByIdDesc(usuario);
+            for (CommentEntity comment : userComments) {
+                commentRepository.deleteById(comment.getId());
+            }
+
+            // Limpiar relaciones y eliminar usuario
+            user.getSeguidores().clear();
+            user.getSiguiendo().clear();
+            user.getPlaylists().clear();
+            userRepository.save(user);
+
+            userRepository.deleteById(user.getId());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error interno al eliminar el usuario");
+        }
     }
 }

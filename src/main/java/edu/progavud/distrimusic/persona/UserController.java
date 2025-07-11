@@ -15,6 +15,7 @@ import java.util.Map;
  * - Registro y autenticación
  * - Gestión de perfiles
  * - Sistema de seguimiento entre usuarios
+ * - Eliminación completa de usuarios
  * 
  * Todos los endpoints están protegidos contra CORS y manejan apropiadamente los
  * errores retornando códigos HTTP adecuados.
@@ -115,21 +116,19 @@ public class UserController {
             @RequestParam(required = false) String follower,
             @RequestBody(required = false) Map<String, Object> body) {
         try {
-            // Permitir follower por query param o por body JSON
             String followerUser = follower;
             if ((followerUser == null || followerUser.isBlank()) && body != null && body.get("follower") != null) {
                 followerUser = String.valueOf(body.get("follower"));
             }
             if (followerUser == null || followerUser.isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Falta el usuario que sigue (follower)",
+                    "error", "Falta el usuario que sigue",
                     "status", "error"
                 ));
             }
             userService.seguirUsuario(followerUser, usuario);
             return ResponseEntity.ok(Map.of(
                 "message", "Ahora sigues a " + usuario,
-                "action", "follow",
                 "status", "success"
             ));
         } catch (RuntimeException e) {
@@ -155,7 +154,6 @@ public class UserController {
             userService.dejarDeSeguir(follower, usuario);
             return ResponseEntity.ok(Map.of(
                 "message", "Dejaste de seguir a " + usuario,
-                "action", "unfollow",
                 "status", "success"
             ));
         } catch (RuntimeException e) {
@@ -203,5 +201,48 @@ public class UserController {
             @RequestParam String follower) {
         boolean isFollowing = userService.esSeguidor(follower, usuario);
         return ResponseEntity.ok(Map.of("isFollowing", isFollowing));
+    }
+
+    /**
+     * Elimina un usuario del sistema junto con todos sus datos relacionados.
+     * 
+     * Este endpoint realiza una eliminación completa y permanente del usuario,
+     * incluyendo todas sus playlists, comentarios y relaciones sociales.
+     * 
+     * Por seguridad, requiere la contraseña del usuario para confirmar la operación.
+     * La eliminación es irreversible y se realiza de forma transaccional.
+     * 
+     * @param usuario nombre del usuario a eliminar
+     * @param requestBody objeto JSON que debe contener la contraseña del usuario para verificación
+     *                   Formato esperado: {"password": "contraseña_del_usuario"}
+     * @return ResponseEntity con mensaje de confirmación (200) o error (400/404)
+     *         - 200: Usuario eliminado exitosamente
+     *         - 400: Contraseña faltante, incorrecta o error en el proceso
+     *         - 404: Usuario no encontrado
+     */
+    @DeleteMapping("/{usuario}")
+    public ResponseEntity<?> deleteUser(
+            @PathVariable String usuario,
+            @RequestBody Map<String, String> requestBody) {
+        try {
+            String password = requestBody.get("password");
+            if (password == null || password.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "La contraseña es requerida",
+                    "status", "error"
+                ));
+            }
+            
+            userService.deleteUser(usuario, password);
+            return ResponseEntity.ok(Map.of(
+                "message", "Usuario eliminado exitosamente",
+                "status", "success"
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", e.getMessage(),
+                "status", "error"
+            ));
+        }
     }
 }
