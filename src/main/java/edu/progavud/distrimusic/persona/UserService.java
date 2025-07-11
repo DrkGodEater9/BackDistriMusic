@@ -231,68 +231,113 @@ public class UserService {
     }
 
     /**
-     * Elimina un usuario del sistema junto con todos sus datos relacionados.
-     * 
-     * Este método realiza una eliminación completa en cascada que incluye:
-     * - Verificación de credenciales del usuario para seguridad
-     * - Eliminación de todas las relaciones de seguimiento (seguidores y siguiendo)
-     * - Eliminación de todas las playlists creadas por el usuario
-     * - Eliminación de todos los comentarios realizados por el usuario
-     * - Eliminación final del registro del usuario
-     * 
-     * La operación es transaccional, garantizando que todos los datos se eliminen
-     * de forma consistente o que la operación falle completamente sin cambios parciales.
-     *
-     * @param usuario nombre del usuario a eliminar
-     * @param password contraseña del usuario para verificación de seguridad
-     * @throws RuntimeException si el usuario no existe, la contraseña es incorrecta, 
-     *                         o hay errores durante el proceso de eliminación
-     */
-    @Transactional
-    public void deleteUser(String usuario, String password) {
-        UserEntity user = userRepository.findByUsuario(usuario)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+ * Elimina un usuario del sistema junto con todos sus datos relacionados.
+ * 
+ * Este método realiza una eliminación completa en cascada que incluye:
+ * - Verificación de credenciales del usuario para seguridad
+ * - Eliminación de todos los comentarios realizados por el usuario
+ * - Eliminación de todas las playlists creadas por el usuario (y sus comentarios)
+ * - Eliminación de todas las relaciones de seguimiento (seguidores y siguiendo)
+ * - Eliminación final del registro del usuario
+ * 
+ * La operación es transaccional, garantizando que todos los datos se eliminen
+ * de forma consistente o que la operación falle completamente sin cambios parciales.
+ *
+ * @param usuario nombre del usuario a eliminar
+ * @param password contraseña del usuario para verificación de seguridad
+ * @throws RuntimeException si el usuario no existe, la contraseña es incorrecta, 
+ *                         o hay errores durante el proceso de eliminación
+ */
+@Transactional
+public void deleteUser(String usuario, String password) {
+    UserEntity user = userRepository.findByUsuario(usuario)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        if (!user.validarCredenciales(password)) {
-            throw new RuntimeException("Contraseña incorrecta");
+    if (!user.validarCredenciales(password)) {
+        throw new RuntimeException("Contraseña incorrecta");
+    }
+
+    try {
+        
+        
+        // 1. PRIMER PASO: Eliminar comentarios del usuario en TODAS las playlists
+        
+        try {
+            List<CommentEntity> userComments = commentRepository.findByUsuarioUsuarioOrderByIdDesc(usuario);
+            if (!userComments.isEmpty()) {
+                
+                commentRepository.deleteAll(userComments);
+                commentRepository.flush();
+
+            }
+        } catch (Exception e) {
+            
+            // Continuar con el proceso
         }
 
+        // 2. SEGUNDO PASO: Eliminar playlists del usuario (y sus comentarios asociados)
+        
         try {
-            // Eliminar relaciones de seguimiento
+            List<PlaylistEntity> userPlaylists = playlistRepository.findByUsuarioUsuario(usuario);
+            if (!userPlaylists.isEmpty()) {
+
+                
+                for (PlaylistEntity playlist : userPlaylists) {
+                    
+                    // Eliminar comentarios en esta playlist
+                    List<CommentEntity> playlistComments = commentRepository.findByPlaylistId(playlist.getId());
+                    if (!playlistComments.isEmpty()) {
+                        commentRepository.deleteAll(playlistComments);
+                    }
+                    
+                    // Limpiar relaciones de canciones
+                    if (playlist.getCanciones() != null) {
+                        playlist.getCanciones().clear();
+                        playlistRepository.save(playlist);
+                    }
+                    
+                    // Eliminar la playlist
+                    playlistRepository.deleteById(playlist.getId());
+                }
+                playlistRepository.flush();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error eliminando playlists del usuario");
+        }
+
+        // 3. TERCER PASO: Eliminar relaciones de seguimiento
+        try {
+            // Eliminar de las listas de "siguiendo" de otros usuarios
             List<UserEntity> followers = userRepository.findSeguidoresByUsuario(usuario);
             for (UserEntity follower : followers) {
                 follower.getSiguiendo().remove(user);
                 userRepository.save(follower);
             }
 
+            // Eliminar de las listas de "seguidores" de otros usuarios
             List<UserEntity> following = userRepository.findSiguiendoByUsuario(usuario);
             for (UserEntity followed : following) {
                 followed.getSeguidores().remove(user);
                 userRepository.save(followed);
             }
 
-            // Eliminar playlists del usuario
-            List<PlaylistEntity> userPlaylists = playlistRepository.findByUsuarioUsuario(usuario);
-            for (PlaylistEntity playlist : userPlaylists) {
-                playlistRepository.deleteById(playlist.getId());
-            }
-
-            // Eliminar comentarios del usuario
-            List<CommentEntity> userComments = commentRepository.findByUsuarioUsuarioOrderByIdDesc(usuario);
-            for (CommentEntity comment : userComments) {
-                commentRepository.deleteById(comment.getId());
-            }
-
-            // Limpiar relaciones y eliminar usuario
+            // Limpiar las propias listas del usuario
             user.getSeguidores().clear();
             user.getSiguiendo().clear();
-            user.getPlaylists().clear();
             userRepository.save(user);
-
-            userRepository.deleteById(user.getId());
-
+            userRepository.flush();
+            
         } catch (Exception e) {
-            throw new RuntimeException("Error interno al eliminar el usuario");
+            // Continuar con el proceso
         }
+
+        // 4. CUARTO PASO: Eliminar el usuario
+        userRepository.deleteById(user.getId());
+        userRepository.flush();
+
+
+    } catch (Exception e) {
+        throw new RuntimeException("Error interno al eliminar el usuario: " + e.getMessage());
     }
+}
 }
